@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shack-Hartmann Sensor, Zernike Polynomials & Atmospheric Turbulence</title>
+    <script src='https://cdn.plot.ly/plotly-latest.min.js'></script>
+    <!-- MathJax Configuration -->
+    <script>
+        MathJax = {
+          tex: {
+            inlineMath: [['\\(', '\\)']],
+            displayMath: [['\\[', '\\]']],
+            tags: 'ams' // Use AMS numbering for equations
+          },
+          svg: {
+            fontCache: 'global'
+          }
+        };
+    </script>
+    <script type="text/javascript" id="MathJax-script" async
+      src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js">
+    </script>
+    <style>
+        /* CSS (Keep styles from the previous version) */
+        :root {
+            --bg-color: #1a1a1a; /* Slightly darker bg */
+            --text-color: #d1d1d1; /* Lighter text */
+            --container-bg: #262626; /* Darker container */
+            --header-color: #61afef; /* Brighter blue */
+            --code-bg: #2c2c2c;
+            --border-color: #4a4a4a;
+            --technical-details-bg: #313131;
+            --technical-details-border: #555555;
+            --button-bg: #007acc;
+            --button-hover-bg: #005fa3;
+            --button-text: #ffffff;
+            --input-bg: #353535;
+            --input-border: #505050;
+            --input-text: var(--text-color);
+            --slider-thumb: var(--button-bg);
+            --slider-track: #484848;
+            --plot-bg: rgba(0,0,0,0);
+            --plot-grid: rgba(128,128,128,0.2); /* Fainter grid */
+            --link-color: #98c379; /* Greenish links */
+            --roi-color: rgba(200, 200, 200, 0.3); /* ROI outline */
+        }
+
+        html.light-mode {
+            --bg-color: #f8f8f8;
+            --text-color: #222222;
+            --container-bg: #ffffff;
+            --header-color: #0056b3;
+            --code-bg: #f0f0f0;
+            --border-color: #dcdcdc;
+            --technical-details-bg: #f5f5f5;
+            --technical-details-border: #d0d0d0;
+            --button-bg: #007bff;
+            --button-hover-bg: #0056b3;
+            --input-bg: #ffffff;
+            --input-text: #333333;
+            --slider-thumb: var(--button-bg);
+            --slider-track: #d8d8d8;
+            --plot-grid: rgba(128,128,128,0.3);
+            --link-color: #0056b3;
+            --roi-color: rgba(100, 100, 100, 0.4);
+        }
+
+        /* General Styles */
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji"; line-height: 1.7; margin: 20px; background-color: var(--bg-color); color: var(--text-color); transition: background-color 0.3s, color 0.3s; font-size: 16px;}
+        .container { max-width: 1200px; margin: auto; background: var(--container-bg); padding: 30px; border-radius: 10px; box-shadow: 0 0 20px rgba(0,0,0,0.3); border: 1px solid var(--border-color); transition: background-color 0.3s; }
+        h1, h2, h3 { color: var(--header-color); border-bottom: 1px solid var(--border-color); padding-bottom: 8px; font-weight: 500;}
+        h1 { font-size: 2em; text-align: center; margin-bottom: 1em;} h2 { font-size: 1.6em; margin-top: 2em; } h3 { font-size: 1.2em; margin-top: 1.6em; }
+        a { color: var(--link-color); text-decoration: none; } a:hover { text-decoration: underline; }
+        p { margin-bottom: 1em; text-align: justify;}
+        ul { margin-left: 25px; margin-bottom: 1em; } li { margin-bottom: 0.5em; }
+        code { background-color: var(--code-bg); color: var(--text-color); padding: 3px 6px; border-radius: 4px; font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace; font-size: 0.9em; }
+        pre { background-color: var(--code-bg); color: var(--text-color); padding: 15px; border-radius: 5px; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word; border: 1px solid var(--border-color); font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace; font-size: 0.9em;}
+        .technical-details { background-color: var(--technical-details-bg); border-left: 5px solid var(--technical-details-border); padding: 5px 20px 20px 20px; margin: 20px 0; border-radius: 4px; }
+        .technical-details h3 { border-bottom: none; margin-top: 0.8em; font-size: 1.1em; color: var(--header-color);}
+
+        /* Visualization & Controls */
+        .visualization { display: flex; flex-wrap: wrap; gap: 30px; margin-top: 25px; align-items: flex-start; }
+        .controls { flex: 1 1 380px; min-width: 320px; }
+        .parameter-controls { background-color: var(--code-bg); padding: 18px; border: 1px solid var(--border-color); border-radius: 5px; margin-bottom: 25px; }
+        .parameter-controls label { display: inline-block; width: 180px; margin-right: 10px; vertical-align: middle;}
+        .parameter-controls input, .parameter-controls select { width: 90px; background-color: var(--input-bg); color: var(--input-text); border: 1px solid var(--input-border); padding: 5px; border-radius: 3px; vertical-align: middle;}
+        /* #pupilSizeDisplay removed */
+        .plot-container { display: flex; flex-direction: column; flex: 2 1 650px; gap: 15px; }
+        #spotPlotContainer, #wavefrontPlot { width: 100%; min-height: 400px; border: 1px solid var(--border-color); border-radius: 5px; }
+        .control-group { margin-bottom: 10px; }
+        label { display: block; margin-bottom: 4px; font-weight: 500; color: var(--text-color); font-size: 0.95em;}
+        input[type="range"] { width: 100%; cursor: pointer; accent-color: var(--slider-thumb); background: var(--slider-track); border-radius: 5px; height: 8px; appearance: none; -webkit-appearance: none; margin-top: 3px;}
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; background: var(--slider-thumb); border-radius: 50%; cursor: pointer; }
+        input[type="range"]::-moz-range-thumb { width: 18px; height: 18px; background: var(--slider-thumb); border-radius: 50%; cursor: pointer; border: none; }
+        .value-display { font-size: 0.8em; color: var(--text-color); margin-left: 8px; min-width: 45px; display: inline-block; font-family: monospace;}
+        button { padding: 6px 12px; background-color: var(--button-bg); color: var(--button-text); border: none; border-radius: 4px; cursor: pointer; font-size: 0.9em; transition: background-color 0.2s; vertical-align: middle;}
+        button:hover { background-color: var(--button-hover-bg); }
+        button#resetButton { margin-top: 18px; padding: 8px 15px; margin-right: 10px; }
+        #wavefrontStats { font-size: 0.9em; color: var(--text-color); margin-top: -10px; margin-bottom: 10px; text-align: center; }
+        #themeToggle { float: right; margin-top: -10px; }
+        mjx-container { color: var(--text-color) !important; }
+        mjx-container[display="true"] { display: block; margin: 1.2em 0; overflow: auto; text-align: center !important; }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <button id="themeToggle">Toggle Theme</button>
+        <h1>Shack-Hartmann Sensors, Zernike Polynomials & Atmospheric Optics</h1>
+
+        <!-- Sections 1-6: Keep the detailed text and math -->
+         <section>
+            <h2>1. What is a Wavefront? (<a href="https://doi.org/10.1017/CBO9781139644181" target="_blank">Goodman 2005</a>)</h2>
+             <p>In wave optics, the concept of a wavefront is fundamental. For a monochromatic optical field described by its complex amplitude \( U(\mathbf{r}) = A(\mathbf{r}) e^{i\phi(\mathbf{r})} \), where \( \mathbf{r} \) is the spatial position, \( A(\mathbf{r}) \) is the real amplitude, and \( \phi(\mathbf{r}) \) is the real-valued phase, a **wavefront** is formally defined as a surface in space where the phase \( \phi(\mathbf{r}) \) is constant. That is, all points \( \mathbf{r} \) on a given wavefront surface satisfy \( \phi(\mathbf{r}) = \text{constant} \).</p>
+             <p>The phase \( \phi \) is directly related to the optical path length (OPL) accumulated by the wave as it propagates from a reference point (or reference surface) to the point \( \mathbf{r} \). The relationship is \( \phi(\mathbf{r}) = k \times \text{OPL}(\mathbf{r}) + \phi_0 \), where \( k = 2\pi/\lambda \) is the angular wavenumber (\( \lambda \) being the vacuum wavelength) and \( \phi_0 \) is an initial phase constant. Consequently, wavefronts are also surfaces of constant OPL.</p>
+             <p>In ideal scenarios, wavefronts possess simple geometric shapes. For instance, light diverging from a point source generates spherical wavefronts. Light originating from an infinitely distant point source (like a star) approximates a **plane wave**, characterized by planar wavefronts perpendicular to the direction of propagation \( \mathbf{k} \).</p>
+             <p>Optical systems (lenses, mirrors) are designed to transform incoming wavefronts into desired outgoing wavefronts (e.g., transforming an incoming plane wave into a converging spherical wave focused at an image point). Imperfections in these components, misalignments, or propagation through inhomogeneous media (like the atmosphere) introduce deviations from the ideal wavefront shape. This deviation, typically measured relative to a reference sphere centered at the ideal focal point, is called the **wavefront aberration function**, denoted by \( W(x, y) \). The coordinates \( (x, y) \) usually represent positions within the pupil, often normalized by the pupil radius \( R_{pupil} \) such that \( \rho = \sqrt{x^2+y^2}/R_{pupil} \le 1 \). \( W(x, y) \) is typically expressed in units of length (e.g., micrometers, µm) or normalized by the wavelength (waves, \( \lambda \)).</p>
+              <div class="technical-details">
+                  <h3>Technical Details: Ray Directions and Eikonal Equation</h3>
+                  <p>In the geometric optics approximation, light rays travel perpendicular to the wavefronts. The direction of a ray passing through pupil coordinates \( (x, y) \) is related to the gradient of the wavefront aberration function. Specifically, the transverse angular deviations \( (\alpha_x, \alpha_y) \) of the ray from the reference direction are given by:</p>
+                  \[ \alpha_x \approx \frac{\partial W}{\partial x} \quad , \quad \alpha_y \approx \frac{\partial W}{\partial y} \]
+                  <p>where \(W\) must be expressed in the same length units used for \(x\) and \(y\). This gradient relationship is fundamental to how the Shack-Hartmann sensor operates. The wavefront itself, in geometric optics, can be considered as a solution to the Eikonal equation \( |\nabla W|^2 = n^2 \), where \( n \) is the refractive index (assuming W represents the OPL).</p>
+             </div>
+        </section>
+
+        <section>
+            <h2>2. How a Shack-Hartmann Wavefront Sensor (SHWFS) Works (<a href="https://doi.org/10.1364/JOSAA.11.001949" target="_blank">Liang et al. 1994</a>; <a href="https://doi.org/10.1117/12.944817" target="_blank">Platt & Shack 1971</a>)</h2>
+            <p>The Shack-Hartmann Wavefront Sensor (SHWFS) is a widely used instrument for measuring the shape of an optical wavefront. Its operation relies on spatially sampling the wavefront's local gradient.</p>
+            <p>Key Components:</p>
+            <ul>
+                <li>**Microlens Array (MLA):** A two-dimensional array of small lenses (lenslets), typically with identical focal lengths \( f \) and arranged in a square or hexagonal grid with a pitch \( p \) (center-to-center distance). The MLA is placed in a plane conjugate to the system's entrance pupil (or another plane where the wavefront is to be measured).</li>
+                <li>**Detector:** A high-resolution electronic detector (e.g., a CCD or CMOS camera) positioned precisely at the back focal plane of the MLA.</li>
+            </ul>
+            <p>Principle of Operation:</p>
+            <ol>
+                <li>The incoming aberrated wavefront \( W(x, y) \) illuminates the MLA.</li>
+                <li>The MLA acts as a spatial sampler, dividing the wavefront into smaller segments, with each segment corresponding to a single lenslet. Each lenslet defines a **subaperture** of the overall pupil.</li>
+                <li>Each lenslet focuses the light from its subaperture onto the detector, forming an array of focal spots.</li>
+                <li>If the wavefront portion incident on a specific lenslet \( k \) were perfectly flat and propagating parallel to the optical axis, the spot would form at a predefined **reference position** \( (x_{ref,k}, y_{ref,k}) \) on the detector, typically the geometric center of the area corresponding to that lenslet.</li>
+                <li>However, if the wavefront portion over lenslet \( k \) has a local tilt (i.e., a non-zero average gradient), the focal spot will be **displaced** from its reference position. The measured position is \( (x_{meas,k}, y_{meas,k}) \).</li>
+                <li>The sensor measures the displacement vector \( (\Delta x_k, \Delta y_k) = (x_{meas,k} - x_{ref,k}, y_{meas,k} - y_{ref,k}) \) for every illuminated lenslet. This set of displacement vectors contains the information about the local slopes of the wavefront across the pupil.</li>
+            </ol>
+             <h3>Dynamic Range and Crosstalk</h3>
+             <p>The sensor's ability to measure large wavefront slopes is limited. Each lenslet projects its focused spot onto a specific area on the detector, often called its **Region of Interest (ROI)** or cell, typically a square of side \( p \). If the wavefront slope is too large, the displacement \( \Delta x_k \) or \( \Delta y_k \) can exceed \( p/2 \), causing the spot to land within the ROI of a neighboring lenslet. This phenomenon, known as **crosstalk**, makes it impossible to uniquely associate spots with their parent lenslets, leading to gross errors in slope measurement. Crosstalk therefore fundamentally limits the **dynamic range** (the maximum magnitude or gradient of aberration) that a specific SHWFS configuration can measure.</p>
+              <div class="technical-details">
+                  <h3>Technical Details: Subaperture Averaging</h3>
+                  <p>Strictly speaking, the position of the centroid of the spot formed by lenslet \( k \) is related to the *average* gradient of the wavefront phase across the subaperture \( A_k \) defined by that lenslet:</p>
+                  \[ \Delta x_k = \frac{f}{k A_k} \iint_{A_k} \frac{\partial \phi}{\partial x} dx dy = \frac{f}{A_k} \iint_{A_k} \frac{\partial W}{\partial x} dx dy \]
+                  \[ \Delta y_k = \frac{f}{k A_k} \iint_{A_k} \frac{\partial \phi}{\partial y} dx dy = \frac{f}{A_k} \iint_{A_k} \frac{\partial W}{\partial y} dx dy \]
+                  <p>where \( A_k \) is the area of the subaperture. This averaging implies that the SHWFS measures a spatially filtered version of the true wavefront gradient, with the filter function determined by the lenslet shape and size. This spatial averaging limits the sensor's ability to resolve high spatial frequency wavefront features smaller than the lenslet size \( p \).</p>
+             </div>
+        </section>
+
+        <section>
+            <h2>3. Measuring Slopes & Subaperture ROI (<a href="https://doi.org/10.1117/3.890593" target="_blank">Tyson 2011</a>)</h2>
+            <p>The fundamental relationship connecting the measured spot centroid displacement \( (\Delta x_k, \Delta y_k) \) for the \(k\)-th subaperture to the average wavefront gradient over that subaperture is:</p>
+            \[ \left\langle \frac{\partial W}{\partial x} \right\rangle_k \approx \frac{\Delta x_k}{f} \quad , \quad \left\langle \frac{\partial W}{\partial y} \right\rangle_k \approx \frac{\Delta y_k}{f} \quad \text{(unitless ratio, radians)} \]
+            <p>Here, \( W \) is the wavefront OPD in length units (e.g., µm), \( f \) is the lenslet focal length (e.g., mm), and \( \Delta x_k, \Delta y_k \) are the displacements measured on the detector (in the same units as \( f \)). The partial derivatives \( \partial W / \partial x \) and \( \partial W / \partial y \) represent the local wavefront tilt angles in radians.</p>
+            <p>The detector area assigned to each lenslet defines its **Region of Interest (ROI)**. For a square array with lenslet pitch \( p \), the ROI is usually a square of side \( p \) centered at the reference position \( (x_{ref,k}, y_{ref,k}) \). To avoid crosstalk, the spot must remain within this region:</p>
+            \[ |\Delta x_k| < \frac{p}{2} \quad \text{and} \quad |\Delta y_k| < \frac{p}{2} \]
+            <p>This imposes a limit on the maximum measurable average slope (the sensor's dynamic range):</p>
+            \[ \left| \left\langle \frac{\partial W}{\partial x,y} \right\rangle_k \right|_{max} \approx \frac{|\Delta x,y|_{max}}{f} = \frac{p}{2f} \quad \text{(radians)} \]
+            <p>The choice of \( p \) and \( f \) involves a trade-off: increasing sensitivity (larger \( \Delta x / \text{slope} \)) by making \( f \) larger or \( p \) smaller reduces the dynamic range. Conversely, decreasing sensitivity allows measurement of larger aberrations but with lower precision for small slopes.</p>
+        </section>
+
+        <section>
+            <h2>4. Zernike Polynomials (<a href="https://doi.org/10.1093/mnras/94.5.377" target="_blank">Zernike 1934</a>; <a href="https://doi.org/10.1364/JOSA.66.000207" target="_blank">Noll 1976</a>; <a href="https://doi.org/10.1117/3.2294460" target="_blank">Mahajan 2018</a>)</h2>
+            <p>Zernike polynomials provide a powerful basis for representing wavefront aberrations over circular pupils, balancing mathematical convenience (orthogonality) with physical relevance (correspondence to classical aberrations).</p>
+            <p>They form a complete set of functions \( Z_j(x, y) \) or \( Z_n^m(\rho, \theta) \) that are orthogonal on the unit disk \( \rho = \sqrt{x^2+y^2}/R_{pupil} \le 1 \). The definition in polar coordinates is:</p>
+             \[
+            Z_n^m(\rho, \theta) =
+            \begin{cases}
+                N_n^m R_n^{m}(\rho) \cos(m\theta) & \text{if } m \ge 0 \\
+                -N_n^{|m|} R_n^{|m|}(\rho) \sin(|m|\theta) & \text{if } m < 0
+            \end{cases}
+            \]
+            <p>The indices \( (n, m) \) define the polynomial's structure: \( n \) (radial order) relates to the maximum power of the radial coordinate \( \rho \), and \( m \) (azimuthal frequency) determines the angular symmetry. The condition \( n \ge |m| \) and \( n-|m| = \text{even} \) must hold. The radial polynomials \( R_n^{|m|}(\rho) \) are given by:</p>
+             \[ R_n^{|m|}(\rho) = \sum_{s=0}^{(n-|m|)/2} \frac{(-1)^s (n-s)!}{s! \left(\frac{n+|m|}{2} - s\right)! \left(\frac{n-|m|}{2} - s\right)!} \rho^{n-2s} \]
+             <p>The normalization constant \( N_n^m \) ensures orthonormality according to \( \iint_{unit disk} Z_j Z_{j'} dA = \delta_{jj'} \). The ANSI/OSA standard normalization is commonly used:</p>
+             \[ N_n^m = \begin{cases} \sqrt{n+1} & \text{if } m = 0 \\ \sqrt{2(n+1)} & \text{if } m \neq 0 \end{cases} \]
+             <p>A wavefront \( W \) is approximated by a finite sum:</p>
+             \[ W(\rho, \theta) \approx \sum_{j=0}^{N_{max}} a_j Z_j(\rho, \theta) \]
+             <p>The coefficient \( a_j \) quantifies the amount of the \( j \)-th aberration mode (e.g., in µm or waves). The orthogonality ensures that \( a_j \) represents the contribution of \( Z_j \) independently of other modes present (in the ideal continuous case). The total RMS wavefront error (variance) is \( \sigma_W^2 = \sum_{j=1}^{N_{max}} a_j^2 \) (excluding piston).</p>
+              <div class="technical-details">
+                  <h3>Technical Details: Properties and Basis Choice</h3>
+                  <p>Zernike polynomials minimize the RMS wavefront error for a given number of terms compared to other polynomial bases like Taylor monomials when representing classical aberrations. They are eigenfunctions of the angular part of the Laplacian operator in polar coordinates. While optimal for circular pupils, other orthogonal bases (e.g., Legendre polynomials for square pupils, or Gram-Schmidt orthogonalized Zernikes for irregular pupils) may be more suitable for non-circular apertures where Zernikes lose their orthogonality. The choice of basis impacts the convergence and interpretation of the expansion coefficients.</p>
+             </div>
+        </section>
+
+        <section>
+            <h2>5. Modal Reconstruction (<a href="https://doi.org/10.1364/JOSA.70.000998" target="_blank">Southwell 1980</a>)</h2>
+            <p>Modal reconstruction determines the Zernike coefficients \( a_j \) from the measured SHWFS slope data \( \mathbf{s} \). The foundation is the linear relationship derived from the gradient of the Zernike expansion.</p>
+            <p>The SHWFS provides \( K \) pairs of average slope measurements \( (s_{x,k}, s_{y,k}) \) corresponding to the \( K \) illuminated lenslets. We model the wavefront using \( N \) Zernike basis functions (typically excluding piston, so \( j=1...N \)). The relationship between the unknown coefficients \( \mathbf{a} = [a_1, ..., a_N]^T \) and the measured slopes \( \mathbf{s} = [s_{x,1}, s_{y,1}, ..., s_{x,K}, s_{y,K}]^T \) is approximated by the linear system:</p>
+            \[ \mathbf{s} \approx \mathbf{G} \mathbf{a} \]
+            <p>The matrix \( \mathbf{G} \) (size \( 2K \times N \)) is the **geometry matrix** or **interaction matrix**. Its elements represent the expected slope signal at each measurement point for a unit amplitude of each Zernike mode. Specifically, the element in row \( (2k-1) \) and column \( j \) is the average x-slope of \( Z_j \) over subaperture \( k \), and the element in row \( (2k) \) and column \( j \) is the average y-slope of \( Z_j \) over subaperture \( k \):</p>
+            \[ G_{2k-1, j} = \left\langle \frac{\partial Z_j}{\partial x} \right\rangle_k \quad , \quad G_{2k, j} = \left\langle \frac{\partial Z_j}{\partial y} \right\rangle_k \]
+            <p>Calculating \( \mathbf{G} \) involves knowing the geometry of the SHWFS (lenslet positions, shapes) and the analytical form of the Zernike derivatives. Often, the average derivative is approximated by the derivative value at the lenslet center \( (x_k, y_k) \).</p>
+            <p>The goal is to find the vector \( \mathbf{\hat{a}} \) that minimizes the sum of the squares of the residuals (\( || \mathbf{s} - \mathbf{G} \mathbf{a} ||^2 \)). This is the standard **least-squares problem**. The solution is formally given by:</p>
+            \[ \mathbf{\hat{a}} = (\mathbf{G}^T \mathbf{G})^{-1} \mathbf{G}^T \mathbf{s} \]
+            <p>The matrix \( \mathbf{G}^+ = (\mathbf{G}^T \mathbf{G})^{-1} \mathbf{G}^T \) is the **Moore-Penrose pseudo-inverse** of \( \mathbf{G} \). It projects the measured slope vector \( \mathbf{s} \) onto the space spanned by the columns of \( \mathbf{G} \) (the possible slopes generated by the chosen Zernike basis) and finds the coefficients of that projection.</p>
+            <p>In practice, directly calculating \( (\mathbf{G}^T \mathbf{G})^{-1} \) can be numerically unstable if \( \mathbf{G} \) is ill-conditioned. Ill-conditioning can arise if some Zernike modes produce very similar slope patterns over the sampled grid (making columns of \( \mathbf{G} \) nearly linearly dependent) or if the pupil is sparsely sampled. A more robust numerical approach is to use **Singular Value Decomposition (SVD)**. Decomposing \( \mathbf{G} = \mathbf{U} \mathbf{\Sigma} \mathbf{V}^T \), where \( \mathbf{U} \) and \( \mathbf{V} \) are orthogonal matrices and \( \mathbf{\Sigma} \) is a diagonal matrix of singular values, allows the pseudo-inverse to be calculated as \( \mathbf{G}^+ = \mathbf{V} \mathbf{\Sigma}^+ \mathbf{U}^T \). Here, \( \mathbf{\Sigma}^+ \) is formed by taking the reciprocal of the non-zero singular values in \( \mathbf{\Sigma} \) and transposing. SVD also allows for diagnosing ill-conditioning (by examining the magnitude of singular values) and performing regularization by filtering out or damping contributions from very small singular values, which often correspond to noise amplification or poorly measured modes.</p>
+        </section>
+
+        <section>
+             <h2>6. Atmospheric Turbulence and Seeing (<a href="https://doi.org/10.1146/annurev.aa.30.090192.000503" target="_blank">Roddier 1992</a>; <a href="https://doi.org/10.1017/CBO9780511751818" target="_blank">Hardy 1998</a>)</h2>
+             <p>Turbulence within Earth's atmosphere significantly degrades images from ground-based telescopes. It arises from the mixing of air parcels with slightly different temperatures, leading to random spatial and temporal fluctuations in the air's refractive index \( n(\mathbf{r}, t) \).</p>
+              <div class="technical-details">
+                 <h3>6.1 Statistical Models</h3>
+                 <p>Turbulence is modeled as a random process. The **Kolmogorov theory** (1941) provides a foundational statistical description for homogeneous, isotropic turbulence within the **inertial range** of spatial scales \( l_0 \ll r \ll L_0 \). Here, \( l_0 \) is the **inner scale** (mm to cm, below which viscosity dissipates turbulent energy) and \( L_0 \) is the **outer scale** (m to km, scale of energy injection into turbulence). The key descriptor is the **refractive index structure function**:</p>
+                  \[ D_n(r) = \langle [n(\mathbf{x}) - n(\mathbf{x}+\mathbf{r})]^2 \rangle = C_n^2 r^{2/3} \quad (\text{Kolmogorov, } l_0 \ll r \ll L_0) \]
+                  <p>where \( r = |\mathbf{r}| \) and \( C_n^2(h) \) is the altitude-dependent refractive index structure constant (m\(^{-2/3}\)), indicating turbulence strength.</p>
+                  <p>The **Von Karman model** refines this by incorporating finite inner (\( l_0 \)) and outer (\( L_0 \)) scales, modifying the power spectral density (PSD) \( \Phi_n(\kappa) \) of refractive index fluctuations (\( \kappa \) is spatial frequency magnitude):</p>
+                  \[ \Phi_n(\kappa) = 0.033 C_n^2 (\kappa^2 + \kappa_0^2)^{-11/6} f(\kappa l_0) \]
+                  <p>where \( \kappa_0 = 2\pi/L_0 \) and \( f(\kappa l_0) \) is a high-frequency cutoff function (e.g., \( e^{-(\kappa l_0 / 5.92)^2} \)). This spectrum behaves like Kolmogorov's \( \kappa^{-11/3} \) power law for \( \kappa_0 \ll \kappa \ll 1/l_0 \).</p>
+
+                 <h3>6.2 Wavefront Phase Statistics</h3>
+                 <p>Propagation through turbulence induces phase fluctuations \( \phi \). The **phase structure function** \( D_\phi(r) \) describes the mean squared phase difference between points separated by \( r \) in the pupil plane:</p>
+                  \[ D_\phi(r) = \langle [\phi(\mathbf{x}) - \phi(\mathbf{x}+\mathbf{r})]^2 \rangle \]
+                  <p>For Kolmogorov turbulence and assuming \( r \gg l_0 \), this becomes:</p>
+                  \[ D_\phi(r) = 6.88 \left( \frac{r}{r_0} \right)^{5/3} \]
+                  <p>This defines the **Fried parameter** \( r_0 \), which represents the atmospheric coherence length:</p>
+                  \[ r_0 = \left[ 0.423 k^2 \sec(\zeta) \int C_n^2(h) dh \right]^{-3/5} \]
+                  <p>where \( k=2\pi/\lambda \) and \( \zeta \) is the zenith angle. A larger \( r_0 \) indicates better observing conditions (weaker turbulence). Note the explicit wavelength dependence: \( r_0 \propto \lambda^{6/5} \). Atmospheric coherence is better at longer wavelengths.</p>
+
+                 <h3>6.3 Temporal Statistics</h3>
+                 <p>Using **Taylor's frozen flow hypothesis** (turbulence pattern moves with velocity \( \mathbf{v} \)), temporal characteristics arise. The **atmospheric coherence time** \( \tau_0 \) is the time over which the RMS phase changes significantly (by \( \approx 1 \) rad):</p>
+                  \[ \tau_0 \approx 0.31 \frac{r_0}{\bar{v}} \]
+                  <p>where \( \bar{v} \) is the effective wind speed. Note the dependence \( \tau_0 \propto r_0 \propto \lambda^{6/5} \). The atmosphere appears more "frozen" at longer wavelengths. The **Greenwood frequency** \( f_G \) sets the required temporal bandwidth for adaptive optics correction:</p>
+                  \[ f_G \approx 0.43 \frac{\bar{v}}{r_0} \]
+                  <p>Note the dependence \( f_G \propto 1/r_0 \propto \lambda^{-6/5} \). Faster correction is needed at shorter wavelengths.</p>
+
+                 <h3>6.4 Seeing and Isoplanatism</h3>
+                 <p>Astronomical **seeing** \( \epsilon_0 \) is the angular resolution limit imposed by turbulence, typically measured as the FWHM of a long-exposure stellar image:</p>
+                  \[ \epsilon_0 \approx 0.98 \frac{\lambda}{r_0} \]
+                  <p>Using the \( r_0 \) dependence, we find \( \epsilon_0 \propto \lambda \times \lambda^{-6/5} = \lambda^{-1/5} \). Seeing slightly improves (smaller angular blur) at longer wavelengths. The **isoplanatic angle** \( \theta_0 \) defines the angular patch over which the turbulence-induced aberration is highly correlated:</p>
+                  \[ \theta_0 = \left[ 2.91 k^2 \sec^{8/3}(\zeta) \int C_n^2(h) h^{5/3} dh \right]^{-3/5} \]
+                  <p>Note the dependence \( \theta_0 \propto \lambda^{6/5} \). The isoplanatic patch is larger at longer wavelengths. Adaptive optics systems require a reference guide star within \( \theta_0 \) of the science target for effective correction across the field.</p>
+              </div>
+        </section>
+
+        <section>
+            <h2>7. Interactive Visualization</h2>
+            <p>Set sensor parameters. Adjust Zernike coefficients \( a_j \) (µm). Observe spot displacements (normalized units relative to ROI size) and wavefront. Faint squares indicate subaperture ROIs.</p>
+            <!-- Parameter Controls -->
+             <div class="parameter-controls">
+                 <h3>Sensor Parameters</h3>
+                 <div class="control-group">
+                     <label for="gridSizeInput">Lenslet Grid (N x N):</label>
+                     <select id="gridSizeInput">
+                         <option value="5">5x5</option>
+                         <option value="7" selected>7x7</option>
+                         <option value="9">9x9</option>
+                         <option value="11">11x11</option>
+                         <option value="15">15x15</option>
+                         <option value="21">21x21</option>
+                         <option value="33">33x33</option>
+                     </select>
+                 </div>
+                 <!-- Removed Pitch and Pupil Display as plots are normalized -->
+                 <div class="control-group">
+                     <label for="focalLengthInput">Focal Length (f, mm):</label>
+                     <input type="number" id="focalLengthInput" value="5.0" step="0.1" min="1"> <!-- MODIFIED: Removed readonly, added step -->
+                 </div>
+                 <div class="control-group">
+                     <label for="wavelengthInput">Wavelength (λ, nm):</label>
+                     <input type="number" id="wavelengthInput" value="550" step="10" min="300">
+                 </div>
+             </div>
+             <!-- Visualization Area -->
+            <div class="visualization">
+                <div class="controls">
+                    <h3>Zernike Coefficients (\(a_j\), µm)</h3>
+                    <!-- Sliders -->
+                    <div class="control-group"> <label title="Noll j=2">a2 (X-Tilt, \(Z_1^1\)):<span class="value-display" id="a2-val">0.000</span></label> <input type="range" id="a2" min="-100" max="100" step="1" value="0"> </div>
+                    <div class="control-group"> <label title="Noll j=3">a3 (Y-Tilt, \(Z_1^{-1}\)):<span class="value-display" id="a3-val">0.000</span></label> <input type="range" id="a3" min="-100" max="100" step="1" value="0"> </div>
+                    <div class="control-group"> <label title="Noll j=4">a4 (Defocus, \(Z_2^0\)):<span class="value-display" id="a4-val">0.000</span></label> <input type="range" id="a4" min="-100" max="100" step="1" value="0"> </div>
+                    <div class="control-group"> <label title="Noll j=6">a5 (Astig 0°, \(Z_2^2\)):<span class="value-display" id="a5-val">0.000</span></label> <input type="range" id="a5" min="-100" max="100" step="1" value="0"> </div>
+                    <div class="control-group"> <label title="Noll j=5">a6 (Astig 45°, \(Z_2^{-2}\)):<span class="value-display" id="a6-val">0.000</span></label> <input type="range" id="a6" min="-100" max="100" step="1" value="0"> </div>
+                    <div class="control-group"> <label title="Noll j=8">a7 (X-Coma, \(Z_3^1\)):<span class="value-display" id="a7-val">0.000</span></label> <input type="range" id="a7" min="-100" max="100" step="1" value="0"> </div>
+                    <div class="control-group"> <label title="Noll j=7">a8 (Y-Coma, \(Z_3^{-1}\)):<span class="value-display" id="a8-val">0.000</span></label> <input type="range" id="a8" min="-100" max="100" step="1" value="0"> </div>
+                    <div class="control-group"> <label title="Noll j=10">a9 (Trefoil X, \(Z_3^3\)):<span class="value-display" id="a9-val">0.000</span></label> <input type="range" id="a9" min="-100" max="100" step="1" value="0"> </div>
+                    <div class="control-group"> <label title="Noll j=9">a10 (Trefoil Y, \(Z_3^{-3}\)):<span class="value-display" id="a10-val">0.000</span></label> <input type="range" id="a10" min="-100" max="100" step="1" value="0"> </div>
+                    <div class="control-group"> <label title="Noll j=13">a11 (Sec. Astig 45°, \(Z_4^{-2}\)):<span class="value-display" id="a11-val">0.000</span></label> <input type="range" id="a11" min="-100" max="100" step="1" value="0"> </div>
+                    <div class="control-group"> <label title="Noll j=11">a12 (Spherical, \(Z_4^0\)):<span class="value-display" id="a12-val">0.000</span></label> <input type="range" id="a12" min="-100" max="100" step="1" value="0"> </div>
+                    <div class="control-group"> <label title="Noll j=12">a13 (Sec. Astig 0°, \(Z_4^2\)):<span class="value-display" id="a13-val">0.000</span></label> <input type="range" id="a13" min="-100" max="100" step="1" value="0"> </div>
+                    <div class="control-group"> <label title="Noll j=14">a14 (Quadrafoil X, \(Z_4^4\)):<span class="value-display" id="a14-val">0.000</span></label> <input type="range" id="a14" min="-100" max="100" step="1" value="0"> </div>
+                    <div class="control-group"> <label title="Noll j=15">a15 (Quadrafoil Y, \(Z_4^{-4}\)):<span class="value-display" id="a15-val">0.000</span></label> <input type="range" id="a15" min="-100" max="100" step="1" value="0"> </div>
+
+                    <button id="resetButton">Reset Coefficients</button>
+                </div>
+                <div class="plot-container">
+                    <div id="spotPlotContainer"></div>
+                     <div id="wavefrontStats">PV: 0.00 µm (0.00 λ)</div>
+                    <div id="wavefrontPlot"></div>
+                </div>
+            </div>
+        </section>
+
+        <section>
+             <h2>8. Conclusion</h2>
+             <p>Shack-Hartmann wavefront sensors provide a robust method for measuring the spatial distribution of wavefront slopes, \( \nabla W \). By representing the wavefront \( W \) with an orthogonal Zernike basis, \( W = \sum a_j Z_j \), the measured slopes \( \mathbf{s} \) are linearly related to the coefficients \( a_j \) through the geometry matrix \( \mathbf{G} \). Least-squares inversion (\( \mathbf{\hat{a}} = \mathbf{G}^+ \mathbf{s} \)) allows robust estimation of the Zernike coefficients, enabling wavefront reconstruction and quantitative analysis of optical aberrations, crucial for applications ranging from ophthalmology to adaptive optics for astronomy, where understanding turbulence statistics (Kolmogorov, Von Karman, \( r_0, \tau_0, \theta_0 \)) is key.</p>
+        </section>
+
+    </div>
+
+    <script>
+        // --- Zernike Polynomial Definitions (Keep implementations) ---
+        function ZernikeR(n, m, rho) { if ((n - m) % 2 !== 0) return 0; m = Math.abs(m); if (rho > 1.0001) return 0; if (n < m) return 0; if (rho < 0) rho = 0; let sum = 0; const limit = (n - m) / 2; for (let s = 0; s <= limit; s++) { const term = (Math.pow(-1, s) * factorial(n - s)) / (factorial(s) * factorial((n + m) / 2 - s) * factorial((n - m) / 2 - s)); if (!isFinite(term)) continue; sum += term * Math.pow(rho, n - 2 * s); } return isFinite(sum) ? sum : 0; }
+        function factorial(num) { num = Math.floor(num); if (num < 0) return Infinity; if (num > 170) return Infinity; if (num === 0) return 1; let result = 1; for (let i = 2; i <= num; i++) result *= i; return result; }
+        const zernikeMap = { 2: [1, 1], 3: [1, -1], 4: [2, 0], 5: [2, 2], 6: [2, -2], 7: [3, 1], 8: [3, -1], 9: [3, 3], 10: [3, -3], 11: [4, -2], 12: [4, 0], 13: [4, 2], 14: [4, 4], 15: [4, -4] };
+        function Zj_cartesian(j_ansi, x_norm, y_norm) { if (j_ansi < 2 || !zernikeMap[j_ansi]) return 0; const [n, m] = zernikeMap[j_ansi]; const rho = Math.sqrt(x_norm * x_norm + y_norm * y_norm); if (rho > 1.0001) return 0; const theta = Math.atan2(y_norm, x_norm); const Rnm = ZernikeR(n, m, rho); if (!isFinite(Rnm)) return 0; const sqrt_norm = (m === 0) ? Math.sqrt(n + 1) : Math.sqrt(2 * (n + 1)); let value; const m_abs = Math.abs(m); if (m >= 0) { value = sqrt_norm * Rnm * Math.cos(m_abs * theta); } else { value = -sqrt_norm * Rnm * Math.sin(m_abs * theta); } return isFinite(value) ? value : 0; }
+        const delta = 0.001; // Step for numerical derivative in normalized coords
+        function dZj_dx_norm_numerical(j_ansi, x_norm, y_norm) { const rho_sq = x_norm*x_norm + y_norm*y_norm; if (rho_sq > 1) return 0; const x_plus = Math.sqrt((x_norm+delta)*(x_norm+delta) + y_norm*y_norm) <= 1 ? x_norm + delta : x_norm; const x_minus = Math.sqrt((x_norm-delta)*(x_norm-delta) + y_norm*y_norm) <= 1 ? x_norm - delta : x_norm; const dx = x_plus - x_minus; if (Math.abs(dx) < 1e-9) return 0; const val_plus = Zj_cartesian(j_ansi, x_plus, y_norm); const val_minus = Zj_cartesian(j_ansi, x_minus, y_norm); if (!isFinite(val_plus) || !isFinite(val_minus)) return 0; return (val_plus - val_minus) / dx; }
+        function dZj_dy_norm_numerical(j_ansi, x_norm, y_norm) { const rho_sq = x_norm*x_norm + y_norm*y_norm; if (rho_sq > 1) return 0; const y_plus = Math.sqrt(x_norm*x_norm + (y_norm+delta)*(y_norm+delta)) <= 1 ? y_norm + delta : y_norm; const y_minus = Math.sqrt(x_norm*x_norm + (y_norm-delta)*(y_norm-delta)) <= 1 ? y_norm - delta : y_norm; const dy = y_plus - y_minus; if (Math.abs(dy) < 1e-9) return 0; const val_plus = Zj_cartesian(j_ansi, x_norm, y_plus); const val_minus = Zj_cartesian(j_ansi, x_norm, y_minus); if (!isFinite(val_plus) || !isFinite(val_minus)) return 0; return (val_plus - val_minus) / dy; }
+
+
+        // --- Global Variables & Setup ---
+        const spotPlotDiv = document.getElementById('spotPlotContainer');
+        const wavefrontPlotDiv = document.getElementById('wavefrontPlot');
+        const resetButton = document.getElementById('resetButton');
+        const gridSizeSelect = document.getElementById('gridSizeInput');
+        const focalLengthInput = document.getElementById('focalLengthInput'); // Keep reference
+        const wavelengthInput = document.getElementById('wavelengthInput');
+        const wavefrontStatsDiv = document.getElementById('wavefrontStats');
+        const themeToggleButton = document.getElementById('themeToggle');
+
+        const coeffScale = 1000.0; // Slider value 100 = 0.1 µm
+        let lensletPositionsNorm = []; // Normalized [-1, 1] lenslet positions
+        let plotGridSize = 35; // Increased for smoother surface
+        let plotCoordsNorm1D = []; // Normalized [-1, 1] for plot grid
+        let currentTheme = 'dark';
+        let updateScheduled = false;
+
+        const coeffSliders = {};
+        const coeffDisplays = {};
+        const activeCoeffIndices = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+
+        // --- Theme Toggle Logic (Keep) ---
+        function applyTheme(theme) {
+            currentTheme = theme;
+            if (theme === 'light') { document.documentElement.classList.add('light-mode'); localStorage.setItem('theme', 'light'); themeToggleButton.textContent = "Switch to Dark Mode"; }
+            else { document.documentElement.classList.remove('light-mode'); localStorage.setItem('theme', 'dark'); themeToggleButton.textContent = "Switch to Light Mode"; }
+            if (!updateScheduled) { requestAnimationFrame(updateVisualization); updateScheduled = true; }
+        }
+        themeToggleButton.addEventListener('click', () => { applyTheme(currentTheme === 'dark' ? 'light' : 'dark'); });
+        const savedTheme = localStorage.getItem('theme');
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        applyTheme(savedTheme || (prefersDark ? 'dark' : 'light'));
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => { if (!localStorage.getItem('theme')) { applyTheme(event.matches ? 'dark' : 'light'); } });
+
+
+        // --- Setup Controls & Grid ---
+         function setupControlsAndGrid() {
+             activeCoeffIndices.forEach(j => { const slider = document.getElementById(`a${j}`); const display = document.getElementById(`a${j}-val`); if (slider && display) { coeffSliders[j] = slider; coeffDisplays[j] = display; display.textContent = (parseFloat(slider.value) / coeffScale).toFixed(3); slider.addEventListener('input', () => { display.textContent = (parseFloat(slider.value) / coeffScale).toFixed(3); if (!updateScheduled) { requestAnimationFrame(updateVisualization); updateScheduled = true; } }); } else { console.warn(`Slider or display not found for a${j}`); } });
+             const triggerUpdate = () => { if (!updateScheduled) { requestAnimationFrame(updateVisualization); updateScheduled = true; } };
+             const updateGrid = () => { generateGrid(); triggerUpdate(); };
+             gridSizeSelect.addEventListener('change', updateGrid);
+             focalLengthInput.addEventListener('input', triggerUpdate); // Now triggers update
+             wavelengthInput.addEventListener('input', triggerUpdate);
+             resetButton.addEventListener('click', () => { activeCoeffIndices.forEach(j => { if (coeffSliders[j]) { coeffSliders[j].value = 0; coeffDisplays[j].textContent = '0.000'; } }); triggerUpdate(); });
+             generateGrid();
+             generatePlotGrid();
+         }
+
+        // --- Generate Grid Functions (Keep) ---
+        const linspace = (start, stop, num) => { if (num < 2) return num === 1 ? [start] : []; const step = (stop - start) / (num - 1); return Array.from({ length: num }, (_, i) => start + i * step); };
+        function generateGrid() { const gridSize = parseInt(gridSizeSelect.value); const gridCoordsNorm1D = linspace(-0.98, 0.98, gridSize); lensletPositionsNorm = []; for (let i = 0; i < gridSize; i++) { for (let j = 0; j < gridSize; j++) { const x_n = gridCoordsNorm1D[j]; const y_n = gridCoordsNorm1D[i]; if (x_n*x_n + y_n*y_n <= 1.0) { lensletPositionsNorm.push([x_n, y_n]); } } } }
+        function generatePlotGrid() { plotCoordsNorm1D = linspace(-1, 1, plotGridSize); }
+
+
+        // --- Plotting Logic (MODIFIED for adjustable f) ---
+        function updateVisualization() {
+             updateScheduled = false;
+             try {
+                 // Get parameters
+                 const f_mm = parseFloat(focalLengthInput.value) || 5.0; // Read adjustable focal length
+                 const lambda_nm = parseFloat(wavelengthInput.value) || 550;
+                 const lambda_um = lambda_nm / 1000.0;
+                 const plotTheme = currentTheme === 'dark' ? 'plotly_dark' : 'plotly';
+                 const N_lenslets_axis = parseInt(gridSizeSelect.value);
+                 const norm_pitch = 2.0 / N_lenslets_axis; // Approx pitch in norm units
+                 const norm_roi_half_width = norm_pitch / 2.0;
+
+                 // Define a base scaling factor for visualization - determines how sensitive the visual shift is
+                 // This factor might need tuning for optimal visual appearance across different f and N
+                 const baseVizScale = 0.01;
+
+                 // Calculate the visualization scale factor dynamically.
+                 // Physical displacement Δx ≈ f * slope. slope is proportional to calculated totalSlopeX_norm.
+                 // The visual displacement should be proportional to f.
+                 // Scale relative to N_lenslets_axis because norm_pitch (and thus norm_roi_half_width) depends on it.
+                 const vizScale = baseVizScale * f_mm * N_lenslets_axis / 2.0;
+
+                 const coeffs = {}; // Coeffs in µm
+                 activeCoeffIndices.forEach(j => {
+                     coeffs[j] = parseFloat(coeffSliders[j].value) / coeffScale;
+                 });
+
+                 // 1. Calculate Slopes (dZj/dx_norm is unitless derivative w.r.t normalized coords)
+                 const spotX_norm = [], spotY_norm = [];
+                 const referenceX_norm = lensletPositionsNorm.map(p => p[0]);
+                 const referenceY_norm = lensletPositionsNorm.map(p => p[1]);
+
+                 lensletPositionsNorm.forEach(([x_n, y_n], i) => {
+                     let totalSlopeX_norm = 0; // This is Sum aj * dZj/dx_norm (units of aj, i.e., µm)
+                     let totalSlopeY_norm = 0;
+                     activeCoeffIndices.forEach(j => {
+                         totalSlopeX_norm += coeffs[j] * dZj_dx_norm_numerical(j, x_n, y_n);
+                         totalSlopeY_norm += coeffs[j] * dZj_dy_norm_numerical(j, x_n, y_n);
+                     });
+                      if (!isFinite(totalSlopeX_norm)) totalSlopeX_norm = 0;
+                      if (!isFinite(totalSlopeY_norm)) totalSlopeY_norm = 0;
+
+                     // Calculate visual spot displacement in normalized units using the dynamic vizScale.
+                     // Displacement should be proportional to f * slope.
+                     spotX_norm.push(referenceX_norm[i] + vizScale * totalSlopeX_norm);
+                     spotY_norm.push(referenceY_norm[i] + vizScale * totalSlopeY_norm);
+                 });
+
+                 // 2. Create ROI shapes in normalized units
+                 const roi_shapes = lensletPositionsNorm.map(([x_ref_n, y_ref_n]) => ({
+                     type: 'rect',
+                     xref: 'x', yref: 'y',
+                     x0: x_ref_n - norm_roi_half_width,
+                     y0: y_ref_n - norm_roi_half_width,
+                     x1: x_ref_n + norm_roi_half_width,
+                     y1: y_ref_n + norm_roi_half_width,
+                     line: { color: 'var(--roi-color)', width: 1, dash: 'dot' },
+                     layer: 'below'
+                 }));
+
+                 // 3. Reconstruct Wavefront Surface (Z values in µm, X/Y Normalized)
+                  const plotZ2D_um = Array(plotGridSize).fill(0).map(() => Array(plotGridSize).fill(NaN));
+                  let minZ = Infinity, maxZ = -Infinity;
+                  for (let i = 0; i < plotGridSize; i++) { for (let j = 0; j < plotGridSize; j++) { const x_n = plotCoordsNorm1D[j]; const y_n = plotCoordsNorm1D[i]; const rho_sq = x_n*x_n + y_n*y_n; if (rho_sq <= 1.0) { let zValue = 0; activeCoeffIndices.forEach(idx => { zValue += coeffs[idx] * Zj_cartesian(idx, x_n, y_n); }); if (isFinite(zValue)) { plotZ2D_um[i][j] = zValue; minZ = Math.min(minZ, zValue); maxZ = Math.max(maxZ, zValue); } else { plotZ2D_um[i][j] = 0; } } } }
+                  const peakToValley_um = (maxZ === -Infinity || minZ === Infinity) ? 0 : (maxZ - minZ);
+                  const peakToValley_waves = lambda_um > 0 ? peakToValley_um / lambda_um : 0;
+                  wavefrontStatsDiv.textContent = `PV: ${peakToValley_um.toFixed(2)} µm (${peakToValley_waves.toFixed(2)} λ)`;
+
+                 // --- Update Plots ---
+                 const plotLayoutDefaults = { template: plotTheme, margin: { l: 60, r: 20, b: 60, t: 30 }, paper_bgcolor: 'var(--plot-bg)', plot_bgcolor: 'var(--plot-bg)', font: { color: 'var(--text-color)' } };
+                 const axisDefaults = { gridcolor: 'var(--plot-grid)', linecolor: 'var(--text-color)', zerolinecolor: 'var(--plot-grid)', tickfont: { color: 'var(--text-color)'}, titlefont: { color: 'var(--text-color)'} };
+
+                 // Spot Plot (Normalized Units)
+                 const plotRangeNorm = 1.2; // Range slightly larger than pupil
+                 const spotLayout = { ...plotLayoutDefaults, shapes: roi_shapes, xaxis: { ...axisDefaults, range: [-plotRangeNorm, plotRangeNorm], title: 'X Norm.', scaleratio: 1 }, yaxis: { ...axisDefaults, range: [-plotRangeNorm, plotRangeNorm], title: 'Y Norm.', scaleanchor: "x"}, legend: { x: 0.05, y: 1.05, orientation: "h", font: { color: 'var(--text-color)'} } };
+                 const spotTrace = { x: spotX_norm, y: spotY_norm, mode: 'markers', type: 'scatter', name: 'Measured Spots', marker: { color: '#FF6347', size: 5 } };
+                 const referenceTrace = { x: referenceX_norm, y: referenceY_norm, mode: 'markers', type: 'scatter', name: 'Lenslet Centers', marker: { color: 'var(--text-color)', size: 2, opacity: 0.5 } };
+                 Plotly.react(spotPlotDiv, [referenceTrace, spotTrace], spotLayout);
+
+                 // Wavefront Plot (Normalized X/Y, Z in µm)
+                 const zRangePadding = Math.max(0.1, peakToValley_um * 0.2);
+                 const zMinRange = (isFinite(minZ) ? minZ : -0.1) - zRangePadding;
+                 const zMaxRange = (isFinite(maxZ) ? maxZ : 0.1) + zRangePadding;
+                 const wavefrontLayout = { ...plotLayoutDefaults, margin: { l: 5, r: 5, b: 5, t: 30 }, scene: { aspectmode: 'cube', xaxis: { ...axisDefaults, title: 'X Norm.', tickvals: [-1, -0.5, 0, 0.5, 1]}, yaxis: { ...axisDefaults, title: 'Y Norm.', tickvals: [-1, -0.5, 0, 0.5, 1]}, zaxis: { ...axisDefaults, title: 'Height (µm)', range: [zMinRange, zMaxRange]} } };
+                 const wavefrontTrace = { x: plotCoordsNorm1D, y: plotCoordsNorm1D, z: plotZ2D_um, type: 'surface', colorscale: 'Viridis', colorbar: { title: 'µm', len: 0.7, tickfont: { color: 'var(--text-color)'}, titlefont: { color: 'var(--text-color)'}} };
+                 Plotly.react(wavefrontPlotDiv, [wavefrontTrace], wavefrontLayout);
+
+             } catch (error) { console.error("Error during visualization update:", error); }
+             finally { updateScheduled = false; }
+        } // End updateVisualization
+
+        // --- Initial Setup ---
+        document.addEventListener('DOMContentLoaded', () => {
+            setupControlsAndGrid();
+            // Initial plot render slightly delayed to ensure layout calculations are done
+            setTimeout(() => { if (!updateScheduled) { requestAnimationFrame(updateVisualization); updateScheduled = true; } }, 250);
+        });
+
+    </script>
+
+</body>
+</html>
