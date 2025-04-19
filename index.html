@@ -107,11 +107,11 @@
 <body>
     <div class="container">
         <button id="themeToggle">Toggle Theme</button>
-        <h1>Shack-Hartmann Sensors, Zernike Polynomials & Atmospheric Optics</h1>
+        <h1>Shack-Hartmann Sensors, Zernike Polynomials & Atmospheric Turbulence</h1>
 
         <!-- Sections 1-6: Keep the detailed text and math -->
          <section>
-            <h2>1. What is a Wavefront? (<a href="https://doi.org/10.1017/CBO9781139644181" target="_blank">Goodman 2005</a>)</h2>
+            <h2>1. What is a Wavefront? (<a href="https://books.google.cl/books?id=ow5xs_Rtt9AC" target="_blank">Goodman 2005</a>)</h2>
              <p>In wave optics, the concept of a wavefront is fundamental. For a monochromatic optical field described by its complex amplitude \( U(\mathbf{r}) = A(\mathbf{r}) e^{i\phi(\mathbf{r})} \), where \( \mathbf{r} \) is the spatial position, \( A(\mathbf{r}) \) is the real amplitude, and \( \phi(\mathbf{r}) \) is the real-valued phase, a **wavefront** is formally defined as a surface in space where the phase \( \phi(\mathbf{r}) \) is constant. That is, all points \( \mathbf{r} \) on a given wavefront surface satisfy \( \phi(\mathbf{r}) = \text{constant} \).</p>
              <p>The phase \( \phi \) is directly related to the optical path length (OPL) accumulated by the wave as it propagates from a reference point (or reference surface) to the point \( \mathbf{r} \). The relationship is \( \phi(\mathbf{r}) = k \times \text{OPL}(\mathbf{r}) + \phi_0 \), where \( k = 2\pi/\lambda \) is the angular wavenumber (\( \lambda \) being the vacuum wavelength) and \( \phi_0 \) is an initial phase constant. Consequently, wavefronts are also surfaces of constant OPL.</p>
              <p>In ideal scenarios, wavefronts possess simple geometric shapes. For instance, light diverging from a point source generates spherical wavefronts. Light originating from an infinitely distant point source (like a star) approximates a **plane wave**, characterized by planar wavefronts perpendicular to the direction of propagation \( \mathbf{k} \).</p>
@@ -125,7 +125,7 @@
         </section>
 
         <section>
-            <h2>2. How a Shack-Hartmann Wavefront Sensor (SHWFS) Works (<a href="https://doi.org/10.1364/JOSAA.11.001949" target="_blank">Liang et al. 1994</a>; <a href="https://doi.org/10.1117/12.944817" target="_blank">Platt & Shack 1971</a>)</h2>
+            <h2>2. How a Shack-Hartmann Wavefront Sensor (SHWFS) Works (<a href="https://doi.org/10.1364/JOSAA.11.001949" target="_blank">Liang et al. 1994</a>; <a href="https://www2.mpia-hd.mpg.de/AO/INSTRUMENTS/FPRAKT/HistoryOfShackHartmann.pdf" target="_blank">Platt & Shack 1971</a>)</h2>
             <p>The Shack-Hartmann Wavefront Sensor (SHWFS) is a widely used instrument for measuring the shape of an optical wavefront. Its operation relies on spatially sampling the wavefront's local gradient.</p>
             <p>Key Components:</p>
             <ul>
@@ -153,7 +153,7 @@
         </section>
 
         <section>
-            <h2>3. Measuring Slopes & Subaperture ROI (<a href="https://doi.org/10.1117/3.890593" target="_blank">Tyson 2011</a>)</h2>
+            <h2>3. Measuring Slopes & Subaperture ROI (<a href="https://doi.org/10.1117/3.923078" target="_blank">Tyson & Frazier 2012</a>)</h2>
             <p>The fundamental relationship connecting the measured spot centroid displacement \( (\Delta x_k, \Delta y_k) \) for the \(k\)-th subaperture to the average wavefront gradient over that subaperture is:</p>
             \[ \left\langle \frac{\partial W}{\partial x} \right\rangle_k \approx \frac{\Delta x_k}{f} \quad , \quad \left\langle \frac{\partial W}{\partial y} \right\rangle_k \approx \frac{\Delta y_k}{f} \quad \text{(unitless ratio, radians)} \]
             <p>Here, \( W \) is the wavefront OPD in length units (e.g., µm), \( f \) is the lenslet focal length (e.g., mm), and \( \Delta x_k, \Delta y_k \) are the displacements measured on the detector (in the same units as \( f \)). The partial derivatives \( \partial W / \partial x \) and \( \partial W / \partial y \) represent the local wavefront tilt angles in radians.</p>
@@ -165,7 +165,7 @@
         </section>
 
         <section>
-            <h2>4. Zernike Polynomials (<a href="https://doi.org/10.1093/mnras/94.5.377" target="_blank">Zernike 1934</a>; <a href="https://doi.org/10.1364/JOSA.66.000207" target="_blank">Noll 1976</a>; <a href="https://doi.org/10.1117/3.2294460" target="_blank">Mahajan 2018</a>)</h2>
+            <h2>4. Zernike Polynomials (<a href="https://doi.org/10.1093/mnras/94.5.377" target="_blank">Zernike 1934</a>; <a href="https://doi.org/10.1364/JOSA.66.000207" target="_blank">Noll 1976</a>)</h2>
             <p>Zernike polynomials provide a powerful basis for representing wavefront aberrations over circular pupils, balancing mathematical convenience (orthogonality) with physical relevance (correspondence to classical aberrations).</p>
             <p>They form a complete set of functions \( Z_j(x, y) \) or \( Z_n^m(\rho, \theta) \) that are orthogonal on the unit disk \( \rho = \sqrt{x^2+y^2}/R_{pupil} \le 1 \). The definition in polar coordinates is:</p>
              \[
@@ -189,7 +189,7 @@
         </section>
 
         <section>
-            <h2>5. Modal Reconstruction (<a href="https://doi.org/10.1364/JOSA.70.000998" target="_blank">Southwell 1980</a>)</h2>
+            <h2>5. Modal Reconstruction (<a href="https://opg.optica.org/josa/abstract.cfm?URI=josa-70-8-998" target="_blank">Southwell 1980</a>)</h2>
             <p>Modal reconstruction determines the Zernike coefficients \( a_j \) from the measured SHWFS slope data \( \mathbf{s} \). The foundation is the linear relationship derived from the gradient of the Zernike expansion.</p>
             <p>The SHWFS provides \( K \) pairs of average slope measurements \( (s_{x,k}, s_{y,k}) \) corresponding to the \( K \) illuminated lenslets. We model the wavefront using \( N \) Zernike basis functions (typically excluding piston, so \( j=1...N \)). The relationship between the unknown coefficients \( \mathbf{a} = [a_1, ..., a_N]^T \) and the measured slopes \( \mathbf{s} = [s_{x,1}, s_{y,1}, ..., s_{x,K}, s_{y,K}]^T \) is approximated by the linear system:</p>
             \[ \mathbf{s} \approx \mathbf{G} \mathbf{a} \]
@@ -203,7 +203,7 @@
         </section>
 
         <section>
-             <h2>6. Atmospheric Turbulence and Seeing (<a href="https://doi.org/10.1146/annurev.aa.30.090192.000503" target="_blank">Roddier 1992</a>; <a href="https://doi.org/10.1017/CBO9780511751818" target="_blank">Hardy 1998</a>)</h2>
+             <h2>6. Atmospheric Turbulence and Seeing (<a href="https://doi.org/10.1364/AOLT.1992.ATuA2" target="_blank">Roddier 1992</a>; <a href="https://doi.org/10.1093/oso/9780195090192.001.0001" target="_blank">Hardy 1998</a>)</h2>
              <p>Turbulence within Earth's atmosphere significantly degrades images from ground-based telescopes. It arises from the mixing of air parcels with slightly different temperatures, leading to random spatial and temporal fluctuations in the air's refractive index \( n(\mathbf{r}, t) \).</p>
               <div class="technical-details">
                  <h3>6.1 Statistical Models</h3>
