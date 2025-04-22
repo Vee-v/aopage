@@ -175,7 +175,11 @@
                 -N_n^{|m|} R_n^{|m|}(\rho) \sin(|m|\theta) & \text{if } m < 0
             \end{cases}
             \]
-            <p>The indices \( (n, m) \) define the polynomial's structure: \( n \) (radial order) relates to the maximum power of the radial coordinate \( \rho \), and \( m \) (azimuthal frequency) determines the angular symmetry. The condition \( n \ge |m| \) and \( n-|m| = \text{even} \) must hold. The radial polynomials \( R_n^{|m|}(\rho) \) are given by:</p>
+            <p>The indices \( (n, m) \) define the polynomial's structure: \( n \) (radial order) relates to the maximum power of the radial coordinate \( \rho \), and \( m \) (azimuthal frequency) determines the angular symmetry. The condition \( n \ge |m| \) and \( n-|m| = \text{even} \) must hold.</p>
+            <div style="border: 1.5px solid #98c379; background: var(--technical-details-bg); color: var(--text-color); border-radius: 6px; padding: 10px 18px; margin: 12px 0; font-size: 0.98em;">
+                <strong>Note:</strong> When dealing with wavefront aberrations in real environments, the magnitude of the Zernike coefficients (i.e., the error) usually scales as \( 1 / n \), where \( n \) is the radial order. This means higher-order aberrations tend to have smaller coefficients.
+            </div>
+            <p>The radial polynomials \( R_n^{|m|}(\rho) \) are given by:</p>
              \[ R_n^{|m|}(\rho) = \sum_{s=0}^{(n-|m|)/2} \frac{(-1)^s (n-s)!}{s! \left(\frac{n+|m|}{2} - s\right)! \left(\frac{n-|m|}{2} - s\right)!} \rho^{n-2s} \]
              <p>The normalization constant \( N_n^m \) ensures orthonormality according to \( \iint_{unit disk} Z_j Z_{j'} dA = \delta_{jj'} \). The ANSI/OSA standard normalization is commonly used:</p>
              \[ N_n^m = \begin{cases} \sqrt{n+1} & \text{if } m = 0 \\ \sqrt{2(n+1)} & \text{if } m \neq 0 \end{cases} \]
@@ -260,7 +264,7 @@
                  <!-- Removed Pitch and Pupil Display as plots are normalized -->
                  <div class="control-group">
                      <label for="focalLengthInput">Focal Length (f, mm):</label>
-                     <input type="number" id="focalLengthInput" value="5.0" step="0.1" min="1"> <!-- MODIFIED: Removed readonly, added step -->
+                     <input type="number" id="focalLengthInput" value="5.0" step="0.1" min="1"> 
                  </div>
                  <div class="control-group">
                      <label for="wavelengthInput">Wavelength (λ, nm):</label>
@@ -270,7 +274,7 @@
              <!-- Visualization Area -->
             <div class="visualization">
                 <div class="controls">
-                    <h3>Zernike Coefficients (\(a_j\), µm)</h3>
+                    <h3>Zernike Coefficients (\(a_j\), µm / n)</h3>
                     <!-- Sliders -->
                     <div class="control-group"> <label title="Noll j=2">a2 (X-Tilt, \(Z_1^1\)):<span class="value-display" id="a2-val">0.000</span></label> <input type="range" id="a2" min="-100" max="100" step="1" value="0"> </div>
                     <div class="control-group"> <label title="Noll j=3">a3 (Y-Tilt, \(Z_1^{-1}\)):<span class="value-display" id="a3-val">0.000</span></label> <input type="range" id="a3" min="-100" max="100" step="1" value="0"> </div>
@@ -305,7 +309,7 @@
     </div>
 
     <script>
-        // --- Zernike Polynomial Definitions (Keep implementations) ---
+        // --- Zernike Polynomial Definitions ---
         function ZernikeR(n, m, rho) { if ((n - m) % 2 !== 0) return 0; m = Math.abs(m); if (rho > 1.0001) return 0; if (n < m) return 0; if (rho < 0) rho = 0; let sum = 0; const limit = (n - m) / 2; for (let s = 0; s <= limit; s++) { const term = (Math.pow(-1, s) * factorial(n - s)) / (factorial(s) * factorial((n + m) / 2 - s) * factorial((n - m) / 2 - s)); if (!isFinite(term)) continue; sum += term * Math.pow(rho, n - 2 * s); } return isFinite(sum) ? sum : 0; }
         function factorial(num) { num = Math.floor(num); if (num < 0) return Infinity; if (num > 170) return Infinity; if (num === 0) return 1; let result = 1; for (let i = 2; i <= num; i++) result *= i; return result; }
         const zernikeMap = { 2: [1, 1], 3: [1, -1], 4: [2, 0], 5: [2, 2], 6: [2, -2], 7: [3, 1], 8: [3, -1], 9: [3, 3], 10: [3, -3], 11: [4, -2], 12: [4, 0], 13: [4, 2], 14: [4, 4], 15: [4, -4] };
@@ -320,14 +324,14 @@
         const wavefrontPlotDiv = document.getElementById('wavefrontPlot');
         const resetButton = document.getElementById('resetButton');
         const gridSizeSelect = document.getElementById('gridSizeInput');
-        const focalLengthInput = document.getElementById('focalLengthInput'); // Keep reference
+        const focalLengthInput = document.getElementById('focalLengthInput');
         const wavelengthInput = document.getElementById('wavelengthInput');
         const wavefrontStatsDiv = document.getElementById('wavefrontStats');
         const themeToggleButton = document.getElementById('themeToggle');
 
         const coeffScale = 1000.0; // Slider value 100 = 0.1 µm
         let lensletPositionsNorm = []; // Normalized [-1, 1] lenslet positions
-        let plotGridSize = 35; // Increased for smoother surface
+        let plotGridSize = 35;
         let plotCoordsNorm1D = []; // Normalized [-1, 1] for plot grid
         let currentTheme = 'dark';
         let updateScheduled = false;
@@ -336,7 +340,7 @@
         const coeffDisplays = {};
         const activeCoeffIndices = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
 
-        // --- Theme Toggle Logic (Keep) ---
+        // --- Theme Toggle Logic ---
         function applyTheme(theme) {
             currentTheme = theme;
             if (theme === 'light') { document.documentElement.classList.add('light-mode'); localStorage.setItem('theme', 'light'); themeToggleButton.textContent = "Switch to Dark Mode"; }
@@ -363,13 +367,13 @@
              generatePlotGrid();
          }
 
-        // --- Generate Grid Functions (Keep) ---
+        // --- Generate Grid Functions ---
         const linspace = (start, stop, num) => { if (num < 2) return num === 1 ? [start] : []; const step = (stop - start) / (num - 1); return Array.from({ length: num }, (_, i) => start + i * step); };
         function generateGrid() { const gridSize = parseInt(gridSizeSelect.value); const gridCoordsNorm1D = linspace(-0.98, 0.98, gridSize); lensletPositionsNorm = []; for (let i = 0; i < gridSize; i++) { for (let j = 0; j < gridSize; j++) { const x_n = gridCoordsNorm1D[j]; const y_n = gridCoordsNorm1D[i]; if (x_n*x_n + y_n*y_n <= 1.0) { lensletPositionsNorm.push([x_n, y_n]); } } } }
         function generatePlotGrid() { plotCoordsNorm1D = linspace(-1, 1, plotGridSize); }
 
 
-        // --- Plotting Logic (MODIFIED for adjustable f) ---
+        // --- Plotting Logic ---
         function updateVisualization() {
              updateScheduled = false;
              try {
@@ -396,6 +400,11 @@
                  activeCoeffIndices.forEach(j => {
                      coeffs[j] = parseFloat(coeffSliders[j].value) / coeffScale;
                  });
+                 const scaledCoeffs = {}; // Coeffs in µm / radial order (for Zernike better visualization)
+                 activeCoeffIndices.forEach(j => {
+                     const [n, m] = zernikeMap[j];
+                     scaledCoeffs[j] = coeffs[j] * (1 / n);
+                });
 
                  // 1. Calculate Slopes (dZj/dx_norm is unitless derivative w.r.t normalized coords)
                  const spotX_norm = [], spotY_norm = [];
@@ -406,8 +415,8 @@
                      let totalSlopeX_norm = 0; // This is Sum aj * dZj/dx_norm (units of aj, i.e., µm)
                      let totalSlopeY_norm = 0;
                      activeCoeffIndices.forEach(j => {
-                         totalSlopeX_norm += coeffs[j] * dZj_dx_norm_numerical(j, x_n, y_n);
-                         totalSlopeY_norm += coeffs[j] * dZj_dy_norm_numerical(j, x_n, y_n);
+                         totalSlopeX_norm += scaledCoeffs[j] * dZj_dx_norm_numerical(j, x_n, y_n);
+                         totalSlopeY_norm += scaledCoeffs[j] * dZj_dy_norm_numerical(j, x_n, y_n);
                      });
                       if (!isFinite(totalSlopeX_norm)) totalSlopeX_norm = 0;
                       if (!isFinite(totalSlopeY_norm)) totalSlopeY_norm = 0;
@@ -433,7 +442,7 @@
                  // 3. Reconstruct Wavefront Surface (Z values in µm, X/Y Normalized)
                   const plotZ2D_um = Array(plotGridSize).fill(0).map(() => Array(plotGridSize).fill(NaN));
                   let minZ = Infinity, maxZ = -Infinity;
-                  for (let i = 0; i < plotGridSize; i++) { for (let j = 0; j < plotGridSize; j++) { const x_n = plotCoordsNorm1D[j]; const y_n = plotCoordsNorm1D[i]; const rho_sq = x_n*x_n + y_n*y_n; if (rho_sq <= 1.0) { let zValue = 0; activeCoeffIndices.forEach(idx => { zValue += coeffs[idx] * Zj_cartesian(idx, x_n, y_n); }); if (isFinite(zValue)) { plotZ2D_um[i][j] = zValue; minZ = Math.min(minZ, zValue); maxZ = Math.max(maxZ, zValue); } else { plotZ2D_um[i][j] = 0; } } } }
+                  for (let i = 0; i < plotGridSize; i++) { for (let j = 0; j < plotGridSize; j++) { const x_n = plotCoordsNorm1D[j]; const y_n = plotCoordsNorm1D[i]; const rho_sq = x_n*x_n + y_n*y_n; if (rho_sq <= 1.0) { let zValue = 0; activeCoeffIndices.forEach(idx => { zValue += scaledCoeffs[idx] * Zj_cartesian(idx, x_n, y_n); }); if (isFinite(zValue)) { plotZ2D_um[i][j] = zValue; minZ = Math.min(minZ, zValue); maxZ = Math.max(maxZ, zValue); } else { plotZ2D_um[i][j] = 0; } } } }
                   const peakToValley_um = (maxZ === -Infinity || minZ === Infinity) ? 0 : (maxZ - minZ);
                   const peakToValley_waves = lambda_um > 0 ? peakToValley_um / lambda_um : 0;
                   wavefrontStatsDiv.textContent = `PV: ${peakToValley_um.toFixed(2)} µm (${peakToValley_waves.toFixed(2)} λ)`;
